@@ -368,11 +368,11 @@ class VmwareCollector():
     @defer.inlineCallbacks
     def collect(self):
         """ collects metrics """
-        vsphere_host = self.host
+        target = self.host
 
         metrics = self._create_metric_containers()
 
-        logging.info("Start collecting metrics from {vsphere_host}".format(vsphere_host=vsphere_host))
+        logging.info("Start collecting metrics from {target}".format(target=target))
 
         self._labels = {}
 
@@ -399,7 +399,7 @@ class VmwareCollector():
 
         yield self._vmware_disconnect()
 
-        logging.info("Finished collecting metrics from {vsphere_host}".format(vsphere_host=vsphere_host))
+        logging.info("Finished collecting metrics from {target}".format(target=target))
 
         return list(metrics.values())   # noqa: F705
 
@@ -1785,7 +1785,7 @@ class VMWareMetricsResource(Resource):
 
         self.config = {
             'default': {
-                'vsphere_host': os.environ.get('VSPHERE_HOST'),
+                'target': os.environ.get('target'),
                 'vsphere_user': os.environ.get('VSPHERE_USER'),
                 'vsphere_password': os.environ.get('VSPHERE_PASSWORD'),
                 'ignore_ssl': get_bool_env('VSPHERE_IGNORE_SSL', False),
@@ -1812,7 +1812,7 @@ class VMWareMetricsResource(Resource):
             section = key.split('_', 1)[1].rsplit('_', 1)[0]
 
             self.config[section.lower()] = {
-                'vsphere_host': os.environ.get('VSPHERE_{}_HOST'.format(section)),
+                'target': os.environ.get('VSPHERE_{}_HOST'.format(section)),
                 'vsphere_user': os.environ.get('VSPHERE_{}_USER'.format(section)),
                 'vsphere_password': os.environ.get('VSPHERE_{}_PASSWORD'.format(section)),
                 'ignore_ssl': get_bool_env('VSPHERE_{}_IGNORE_SSL'.format(section), False),
@@ -1856,21 +1856,21 @@ class VMWareMetricsResource(Resource):
             logging.info("{} is not a valid section, using default".format(section))
             section = 'default'
 
-        if self.config[section].get('vsphere_host') and self.config[section].get('vsphere_host') != "None":
-            vsphere_host = self.config[section].get('vsphere_host')
+        if self.config[section].get('target') and self.config[section].get('target') != "None":
+            target = self.config[section].get('target')
         elif request.args.get(b'target', [None])[0]:
-            vsphere_host = request.args.get(b'target', [None])[0].decode('utf-8')
-        elif request.args.get(b'vsphere_host', [None])[0]:
-            vsphere_host = request.args.get(b'vsphere_host')[0].decode('utf-8')
+            target = request.args.get(b'target', [None])[0].decode('utf-8')
+        elif request.args.get(b'target', [None])[0]:
+            target = request.args.get(b'target')[0].decode('utf-8')
         else:
             request.setResponseCode(500)
-            logging.info("No vsphere_host or target defined")
-            request.write(b'No vsphere_host or target defined!\n')
+            logging.info("No target defined")
+            request.write(b'No target defined!\n')
             request.finish()
             return
 
         collector = VmwareCollector(
-            vsphere_host,
+            target,
             self.config[section]['vsphere_user'],
             self.config[section]['vsphere_password'],
             self.config[section]['collect_only'],
